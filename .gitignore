@@ -1,0 +1,14 @@
+# Directories
+node_modules/
+dist/
+
+# TypeScript
+*.tsbuildinfo
+
+# MongoDB
+data/
+
+# Redis
+dump.rdb
+
+package-lock.json
