@@ -82,7 +82,7 @@ router.get('/categories/:id', async (req: Request, res: Response) => {
 
 
 // update a category by ID 
-router.put('/categories/:id', async (req: Request, res: Response) => {
+router.put('/categories/:id', urlencodedParser, async (req: Request, res: Response) => {
     try {
         const category = await Category.findById(req.params.id).populate('childCategories').exec();
 
@@ -91,27 +91,48 @@ router.put('/categories/:id', async (req: Request, res: Response) => {
         }
 
         // update the category properties
-        category.name = req.body.name || category.name;
-        category.parentCategory = req.body.parentCategory || category.parentCategory;
-        category.isActive = req.body.isActive || category.isActive;
-
-        // recursively update the child categories' isActive property
-        async function updateChildCategories(category: ICategory, isActive: boolean) {
-            for (let childCategory of category.childCategories) {
-                childCategory.isActive = isActive;
-                await childCategory.save();
-                await updateChildCategories(childCategory, isActive);
+        const result = await Category.aggregate([
+          {
+            $match: { name: category.name } // match the category with the name
+          },
+          {
+            $graphLookup: {
+              from: "categories",
+              startWith: "$_id",
+              connectFromField: "_id",
+              connectToField: "parentCategory",
+              as: "childCategories",
+              maxDepth: 10 // maximum depth to search
             }
-        }
-
-        // deactivate all child categories if the category is being deactivated
-        if (!category.isActive) {
-            await updateChildCategories(category, false);
+          },
+          {
+            $unwind: "$childCategories"
+          },
+          {
+            $set: {
+              "childCategories.isActive": category.isActive // set the isActive field to true/false
+            }
+          },
+          {
+            $project: {
+              _id: "$childCategories._id",
+              name: "$childCategories.name",
+              parentCategory: "$childCategories.parentCategory",
+              level: "$childCategories.level",
+              isActive: "$childCategories.isActive"
+            }
+          }
+        ]).exec();
+        
+        if(result){
+            const categoryIds = result.map(category => category._id);
+            // update all documents using the updateMany method
+            await Category.updateMany({ _id: { $in: categoryIds } }, { $set: { isActive: category.isActive } }, { new: true }).exec();
         }
 
         await category.save();
-
         res.send(category);
+
     } catch (err) {
         res.status(500).send(err);
     }
