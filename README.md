@@ -24,15 +24,13 @@ src/
 |-- routes/
 |   |-- exampleRoute.ts
 |   |-- ...
-|-- app.ts
-|-- index.ts 
+|-- server.ts
 ```
 - The ``helpers`` directory contains the helper functions.
 - The ``interfaces`` directory contains the different type of interfaces.
 - The ``models`` directory contains the database models.
 - The ``routes`` directory contains the route definitions.
-- ``app.ts`` is where the Express.js app is configured.
-- ``index.ts`` is the entry point for the application.
+- ``server.ts`` is where the Express.js app is configured and the entry point for the application.
 
 ## Environment Variables
 The following environment variables are used in the application:
